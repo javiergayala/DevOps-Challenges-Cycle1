@@ -1,11 +1,11 @@
 DevOps-Challenges-Cycle1
 ========================
 
-Your name:  
+Your name:  Javier Ayala
 
 Support DevOps Challenges Cycle 1
 
-__Challenge 1__: Write a script that builds a 512MB Cloud Server and returns the root password and IP address for the server. This must be done in PHP with php-opencloud 
+__Challenge 1__: Write a script that builds a 512MB Cloud Server and returns the root password and IP address for the server. This must be done in PHP with php-opencloud __[COMPLETE]__
 
 __Challenge 2__: Write a script that builds anywhere from 1 to 3 512MB cloud servers (the number is based on user input). Inject an SSH public key into the server for login. Return the IP addresses for the server. The servers should take their name from user input, and add a numerical identifier to the name. For example, if the user inputs "bob", the servers should be named bob1, bob2, etc... This must be done in PHP with php-opencloud. 
 
