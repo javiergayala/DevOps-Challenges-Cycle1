@@ -4,8 +4,12 @@
  *
  * This file provides my answer for challenge1 of the DevOps Challenge
  * @author Javier Ayala <jayala@rackspace.com>
- * @version  1.0
  * @package  challenge1
+ * @version  1.0
+ */
+
+/**
+ * Load the php-opencloud classes
  */
 require 'vendor/autoload.php';
 
@@ -33,7 +37,7 @@ $name = 'TestServer';
 /**
  * OpsChallenge class
  *
- * @package default
+ * @category challenge1
  * @author Javier Ayala <jayala@rackspace.com>
  **/
 class OpsChallenge
