@@ -61,6 +61,10 @@ if (isset($options["s"])) {
 }
 /**
  * OpsChallenge2 class
+ * 
+ * Class to build between 1-3 512MB Cloud Servers (based on user input), inject 
+ * an SSH public key for logins, and return the IP address.  Server names should be
+ * incremented based on user input (i.e. www-1.domain.com, www-2.domain.com, etc.)
  *
  * @category challenge2
  * @author Javier Ayala <jayala@rackspace.com>

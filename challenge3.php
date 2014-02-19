@@ -22,6 +22,9 @@ $credsFile = $_SERVER['HOME'] . "/.rackspace_cloud_credentials";
 
 /**
  * OpsChallenge3 class
+ * 
+ * Class to print a list of domains in Cloud DNS, choose a domain from the list,
+ * and add an A record to the DNS based on user input.
  *
  * @category challenge3
  * @author Javier Ayala <jayala@rackspace.com>

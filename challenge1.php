@@ -36,6 +36,8 @@ $name = 'TestServer';
 
 /**
  * OpsChallenge class
+ * 
+ * Class to build a 512MB Cloud Server and return the root password and IP Address.
  *
  * @category challenge1
  * @author Javier Ayala <jayala@rackspace.com>
