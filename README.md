@@ -18,7 +18,7 @@ __Challenge 4__: Write a script that creates a Cloud Files Container. If the con
 
 ##Part 2
 
-__Challenge 5__: Write a script that creates a Cloud Database. If a CDB already exists with that name, suggest a new name like "name1" and give the user the choice to proceed or exit. The script should also create X number of Databases and X number of users in the new Cloud Database Instance. The script must return the Cloud DB URL. Choose your language and SDK! 
+__Challenge 5__: Write a script that creates a Cloud Database. If a CDB already exists with that name, suggest a new name like "name1" and give the user the choice to proceed or exit. The script should also create X number of Databases and X number of users in the new Cloud Database Instance. The script must return the Cloud DB URL. Choose your language and SDK! __[COMPLETE]__ _(Used Python/pyrax)_
 
 __Challenge 6__: Write a script that enables and executes a backup for a Cloud Database. Pre-requisite is that the Cloud DB Instance must already exist with a valid database (with some data) and a username with access to the DB. The user executing the script should be able to choose the Instance, Database, and User via the command line arguments to execute the backup. Choose your language and SDK! 
 

@@ -3,7 +3,7 @@
 # @Author: javiergayala
 # @Date:   2014-02-19 14:15:21
 # @Last Modified by:   javiergayala
-# @Last Modified time: 2014-02-19 16:42:17
+# @Last Modified time: 2014-02-24 13:09:33
 
 """challenge5.py"""
 
@@ -87,11 +87,17 @@ class CloudDB(object):
 
     def check_name(self):
         self.name = raw_input('Enter Name for CDB Instance: ')
-        if self.name in self.cdb.list():
+        dbinst_exists = None
+        try:
+            self.cdb.find(name=self.name)
+            dbinst_exists = True
+        except exc.NotFound:
+            dbinst_exists = False
+        if dbinst_exists is True:
             print("The name '%s' is already in use." % self.name)
             ans = raw_input('Would you like to use a variant such '
-                            'as %s-1 instead? [y/n]: ')
-            if ans.lower() is 'y':
+                            'as %s-1 instead? [y/n]: ' % self.name)
+            if ans.lower() == 'y':
                 self.name = self.name + "-1"
             else:
                 print("Can not proceed with a duplicate name")
@@ -100,6 +106,11 @@ class CloudDB(object):
 
     def create_instance(self):
         try:
+            self.check_name()
+        except Exception, e:
+            raise e
+        try:
+            print("Building Instance %s" % self.name)
             self.cdbinst = self.cdb.create(self.name, flavor=self.flavor,
                                            volume=self.disk)
         except Exception as e:
@@ -116,7 +127,6 @@ class CloudDB(object):
         basename = raw_input("What base name should be used for " +
                              "the new DB's?: ")
         if not self.cdbinst:
-            print("Building Instance %s" % self.name)
             self.create_instance()
             pass
         for x in xrange(1, int(numdbs) + 1):
@@ -124,6 +134,8 @@ class CloudDB(object):
             if x != 1:
                 dbname = basename + str(x)
             self.dbs[dbname] = self.cdbinst.create_database(dbname)
+        print("URL for your CloudDB Instance: %s\n" %
+              self.cdbinst.links[0]['href'])
         return
 
 
@@ -164,11 +176,9 @@ def main():
 
     log.debug("Logged in")
     raxConn.choose_flavors()
-    raxConn.check_name()
     raxConn.create_dbs()
-    print(raxConn.flavor)
-    print(raxConn.disk)
-    pass
+
+    return
 
 if __name__ == "__main__":
     main()
