@@ -3,7 +3,7 @@
 # @Author: javiergayala
 # @Date:   2014-02-19 14:15:21
 # @Last Modified by:   javiergayala
-# @Last Modified time: 2014-02-24 13:09:33
+# @Last Modified time: 2014-02-24 15:36:12
 
 """challenge5.py"""
 
@@ -37,6 +37,7 @@ class CloudDB(object):
             sys.exit(2)
         self.cdb = pyrax.cloud_databases
         self.dbs = {}
+        self.users = {}
         self.cdbinst = None
 
     def authenticate(self):
@@ -134,8 +135,30 @@ class CloudDB(object):
             if x != 1:
                 dbname = basename + str(x)
             self.dbs[dbname] = self.cdbinst.create_database(dbname)
+            log.debug(self.dbs[dbname])
         print("URL for your CloudDB Instance: %s\n" %
               self.cdbinst.links[0]['href'])
+        return
+
+    def create_users(self):
+        numusers = raw_input("How many users would you like to create?: ")
+        while not numusers.isdigit():
+            numusers = raw_input("How many users would you like to " +
+                                 "create?: ")
+        basename = raw_input("What base name should be used for " +
+                             "the new users?: ")
+        dbs = []
+        for db in self.dbs.iterkeys():
+            dbs.append(db)
+        for x in xrange(1, int(numusers) + 1):
+            username = basename
+            if x != 1:
+                username = basename + str(x)
+            self.users[username] = self.cdbinst.create_user(name=username,
+                                                            password=username,
+                                                            database_names=dbs,
+                                                            host="%")
+            log.debug(self.users[username])
         return
 
 
@@ -177,6 +200,7 @@ def main():
     log.debug("Logged in")
     raxConn.choose_flavors()
     raxConn.create_dbs()
+    raxConn.create_users()
 
     return
 
