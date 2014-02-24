@@ -3,11 +3,11 @@
 # @Author: javiergayala
 # @Date:   2014-02-19 14:15:21
 # @Last Modified by:   javiergayala
-# @Last Modified time: 2014-02-24 16:21:43
+# @Last Modified time: 2014-02-24 16:19:24
 
-"""challenge5.py"""
+"""challenge6.py"""
 
-__appname__ = "challenge5.py"
+__appname__ = "challenge6.py"
 __author__ = "javiergayala"
 __version__ = "0.0"
 __license__ = "GNU GPL 3.0 or later"
@@ -26,19 +26,23 @@ credsFile = os.path.expanduser('~') + '/.rackspace_cloud_credentials'
 
 
 class CloudDB(object):
-    """Class for connecting and manipulating CloudDB for challenge 5."""
-    def __init__(self, credsFile):
+    """Class for connecting and manipulating CloudDB for Challenge 6."""
+    def __init__(self, credsFile, dbInst=None, dbName=None, dbUser=None):
         super(CloudDB, self).__init__()
         self.credsFile = credsFile
+        self.dbInst = dbInst
+        self.dbName = dbName
+        self.dbUser = dbUser
         try:
             self.authenticate()
         except:
             print "Couldn't login"
             sys.exit(2)
         self.cdb = pyrax.cloud_databases
-        self.dbs = {}
-        self.users = {}
         self.cdbinst = None
+        self.dbObj = None
+        self.userObj = None
+
 
     def authenticate(self):
         """Authenticate using credentials in config file, or fall back to
@@ -105,19 +109,22 @@ class CloudDB(object):
                 sys.exit(1)
         return
 
-    def create_instance(self):
+    def connect_instance(self):
         try:
-            self.check_name()
-        except Exception, e:
-            raise e
+            self.cdbinst = self.cdb.find(name=self.dbInst)
+        except exc.NotFound:
+            print("Can't find instance: %s" % e)
+            sys.exit(1)
         try:
-            print("Building Instance %s" % self.name)
-            self.cdbinst = self.cdb.create(self.name, flavor=self.flavor,
-                                           volume=self.disk)
-        except Exception as e:
-            raise e
-        utils.wait_until(self.cdbinst, "status", ['ACTIVE', 'ERROR'],
-                         interval=5, attempts=0, verbose=True)
+            self.dbObj = self.cdbinst.get_database(self.dbName)
+        except exc.NoSuchDatabase:
+            print("Can't find database: %s" % self.dbName)
+            sys.exit(1)
+        try:
+            self.userObj = self.cdbinst.get_user(self.dbUser)
+        except exc.NoSuchDatabaseUser:
+            print("Can't find user: %s" % self.dbUser)
+            sys.exit(1)
         return
 
     def create_dbs(self):
@@ -135,30 +142,8 @@ class CloudDB(object):
             if x != 1:
                 dbname = basename + str(x)
             self.dbs[dbname] = self.cdbinst.create_database(dbname)
-            log.debug(self.dbs[dbname])
         print("URL for your CloudDB Instance: %s\n" %
               self.cdbinst.links[0]['href'])
-        return
-
-    def create_users(self):
-        numusers = raw_input("How many users would you like to create?: ")
-        while not numusers.isdigit():
-            numusers = raw_input("How many users would you like to " +
-                                 "create?: ")
-        basename = raw_input("What base name should be used for " +
-                             "the new users?: ")
-        dbs = []
-        for db in self.dbs.iterkeys():
-            dbs.append(db)
-        for x in xrange(1, int(numusers) + 1):
-            username = basename
-            if x != 1:
-                username = basename + str(x)
-            self.users[username] = self.cdbinst.create_user(name=username,
-                                                            password=username,
-                                                            database_names=dbs,
-                                                            host="%")
-            log.debug(self.users[username])
         return
 
 
@@ -167,6 +152,12 @@ def main():
     parser.add_argument('-c', '--config', dest='configFile',
                         help="Location of the config file",
                         default=credsFile)
+    parser.add_argument('-i', '--instance', dest='dbInst',
+                        help="Name of the Database Instance", required=True)
+    parser.add_argument('-d', '--database', dest='dbName',
+                        help="Name of the Database", required=True)
+    parser.add_argument('-u', '--user', dest='dbUser',
+                        help="Name of the Database User", required=True)
     group = parser.add_mutually_exclusive_group()
     group.add_argument("-v", "--verbose", action="count", default=0,
                        help="Increase verbosity. \
@@ -192,15 +183,19 @@ def main():
     log.debug("CLI arguments: %s" % args)
 
     try:
-        raxConn = CloudDB(args.configFile)
+        log.debug("Establishing connection to the API")
+        raxConn = CloudDB(args.configFile, args.dbInst, args.dbName,
+                          args.dbUser)
     except:
         print "Couldn't login"
         sys.exit(2)
 
     log.debug("Logged in")
-    raxConn.choose_flavors()
-    raxConn.create_dbs()
-    raxConn.create_users()
+    log.debug("Connecting to Instance: %s" % args.dbInst)
+    raxConn.connect_instance()
+    log.debug("DB Instance: %s" % raxConn.cdbinst)
+    log.debug("DB Name: %s" % raxConn.dbObj)
+    log.debug("DB User: %s" % raxConn.userObj)
 
     return
 
