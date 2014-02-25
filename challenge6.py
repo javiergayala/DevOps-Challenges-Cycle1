@@ -3,7 +3,7 @@
 # @Author: javiergayala
 # @Date:   2014-02-19 14:15:21
 # @Last Modified by:   javiergayala
-# @Last Modified time: 2014-02-24 16:19:24
+# @Last Modified time: 2014-02-25 09:54:33
 
 """challenge6.py"""
 
@@ -26,13 +26,49 @@ credsFile = os.path.expanduser('~') + '/.rackspace_cloud_credentials'
 
 
 class CloudDB(object):
-    """Class for connecting and manipulating CloudDB for Challenge 6."""
-    def __init__(self, credsFile, dbInst=None, dbName=None, dbUser=None):
+    """Class for connecting and manipulating CloudDB for Challenge 6.
+
+    Instance Variables:
+    self.credsFile -- Location of the credentials file
+    self.dbInst -- Name of the Cloud DB Instance to connect to
+    self.dbName -- Name of the Cloud DB Database to use
+    self.dbUser -- Name of the Cloud DB User to use
+    self.bu_name -- Name of the backup
+    self.bu_desc -- Description of the backup
+    self.cdb -- pyrax.cloud_databases connection object
+    self.cdbinst -- Cloud DB Instance object
+    self.dbObj -- Cloud DB Database object
+    self.userObj -- Cloud DB User object
+    self.backup -- Cloud DB Backup instance
+
+    Methods:
+    self.authenticate() -- Authenticate with Rackspace Cloud
+    self.raxLoginPrompt() -- Prompt for user credentials
+    self.connect_instance() -- Connect to a Cloud DB Instance
+    self.create_backup() -- Create a Cloud DB Backup
+
+    """
+
+    def __init__(self, credsFile, bu_name, bu_desc, dbInst=None, dbName=None,
+                 dbUser=None):
+        """Initialize the class
+
+        Arguments:
+        credsFile -- Location of the credentials file
+        dbInst -- Name of the Cloud DB Instance to connect to
+        dbName -- Name of the Cloud DB Database to use
+        dbUser -- Name of the Cloud DB User to use
+        bu_name -- Name of the backup
+        bu_desc -- Description of the backup
+
+        """
         super(CloudDB, self).__init__()
         self.credsFile = credsFile
         self.dbInst = dbInst
         self.dbName = dbName
         self.dbUser = dbUser
+        self.bu_name = bu_name
+        self.bu_desc = bu_desc
         try:
             self.authenticate()
         except:
@@ -42,7 +78,7 @@ class CloudDB(object):
         self.cdbinst = None
         self.dbObj = None
         self.userObj = None
-
+        self.backup = None
 
     def authenticate(self):
         """Authenticate using credentials in config file, or fall back to
@@ -59,6 +95,7 @@ class CloudDB(object):
             print ("I seem to have misplaced my keyring... Awkward...")
             print "No config file found: " + str(self.credsFile)
             self.raxLoginPrompt()
+        return
 
     def raxLoginPrompt(self):
         """Prompt the user for a login name and API Key to use for logging
@@ -73,43 +110,10 @@ class CloudDB(object):
             print "Authentication Failed using the " + \
                 "Username and API Key provided!"
             sys.exit(1)
-
-    def choose_flavors(self):
-        print("Choose a flavor of Cloud DB:")
-        for flav in self.cdb.list_flavors():
-            print("%s: %s" % (flav.id, flav.name))
-        self.flavor = raw_input("Flavor: ")
-        while not self.flavor.isdigit():
-            self.flavor = raw_input("Flavor: ")
-        self.disk = raw_input("How many GBs (GeeBees) should the disk " +
-                              "be? (Numbers only): ")
-        while not self.disk.isdigit():
-            self.disk = raw_input("How many GBs (GeeBees) should the disk " +
-                                  "be? (Numbers only): ")
-        self.flavor = int(self.flavor)
-        self.disk = int(self.disk)
-        return
-
-    def check_name(self):
-        self.name = raw_input('Enter Name for CDB Instance: ')
-        dbinst_exists = None
-        try:
-            self.cdb.find(name=self.name)
-            dbinst_exists = True
-        except exc.NotFound:
-            dbinst_exists = False
-        if dbinst_exists is True:
-            print("The name '%s' is already in use." % self.name)
-            ans = raw_input('Would you like to use a variant such '
-                            'as %s-1 instead? [y/n]: ' % self.name)
-            if ans.lower() == 'y':
-                self.name = self.name + "-1"
-            else:
-                print("Can not proceed with a duplicate name")
-                sys.exit(1)
         return
 
     def connect_instance(self):
+        """Connect to the CloudDB Instance."""
         try:
             self.cdbinst = self.cdb.find(name=self.dbInst)
         except exc.NotFound:
@@ -127,27 +131,24 @@ class CloudDB(object):
             sys.exit(1)
         return
 
-    def create_dbs(self):
-        numdbs = raw_input("How many databases would you like to create?: ")
-        while not numdbs.isdigit():
-            numdbs = raw_input("How many databases would you like to " +
-                               "create?: ")
-        basename = raw_input("What base name should be used for " +
-                             "the new DB's?: ")
-        if not self.cdbinst:
-            self.create_instance()
-            pass
-        for x in xrange(1, int(numdbs) + 1):
-            dbname = basename
-            if x != 1:
-                dbname = basename + str(x)
-            self.dbs[dbname] = self.cdbinst.create_database(dbname)
-        print("URL for your CloudDB Instance: %s\n" %
-              self.cdbinst.links[0]['href'])
+    def refresh_info(self):
+        """Refresh the backup instance info."""
+        self.backup = self.backup.manager.find(name=self.bu_name)
+        return
+
+    def create_backup(self):
+        """Create the backup and watch it until it completes."""
+        self.backup = self.cdbinst.create_backup(self.bu_name,
+                                                 description=self.bu_desc)
+        print("Creating backup for DB '%s'" % self.dbName)
+        self.refresh_info()
+        utils.wait_for_build(self.backup, "status", ['COMPLETED', 'FAILED'],
+                             interval=5, attempts=0, verbose=True)
         return
 
 
 def main():
+    """Parse the command line arguments and launch the backup."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('-c', '--config', dest='configFile',
                         help="Location of the config file",
@@ -158,6 +159,10 @@ def main():
                         help="Name of the Database", required=True)
     parser.add_argument('-u', '--user', dest='dbUser',
                         help="Name of the Database User", required=True)
+    parser.add_argument('-bn', '--backup-name', dest='bu_name',
+                        help="Name of the backup", default='backup')
+    parser.add_argument('-bd', '--backup-description', dest='bu_desc',
+                        help="Description of the backup", default=None)
     group = parser.add_mutually_exclusive_group()
     group.add_argument("-v", "--verbose", action="count", default=0,
                        help="Increase verbosity. \
@@ -184,8 +189,8 @@ def main():
 
     try:
         log.debug("Establishing connection to the API")
-        raxConn = CloudDB(args.configFile, args.dbInst, args.dbName,
-                          args.dbUser)
+        raxConn = CloudDB(args.configFile, args.bu_name, args.bu_desc,
+                          args.dbInst, args.dbName, args.dbUser)
     except:
         print "Couldn't login"
         sys.exit(2)
@@ -196,6 +201,8 @@ def main():
     log.debug("DB Instance: %s" % raxConn.cdbinst)
     log.debug("DB Name: %s" % raxConn.dbObj)
     log.debug("DB User: %s" % raxConn.userObj)
+    log.debug("Creating the Backup: %s" % args.bu_name)
+    raxConn.create_backup()
 
     return
 
