@@ -102,9 +102,11 @@ createdServers.each.with_progress('Building Servers') do |svr|
         end
     end
     privateIPs << Hash["SERVICENET" => svr.id.private_ip_address]
+    puts "#{svr.id.id}"
     nodes << Hash["address" => svr.id.private_ip_address,
                   "id" => svr.id.id,
-                  "type" => 'PRIMARY',
+                  "status" => "ONLINE",
+                  "type" => "PRIMARY",
                   "port" => port,
                   "condition" => 'ENABLED',
                   "weight" => 5]
